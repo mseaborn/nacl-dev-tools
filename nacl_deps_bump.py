@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib2
 
 import pysvn
 
@@ -56,6 +57,34 @@ def SetDepsKey(data, key, value):
                   data[match.end(1):]])
 
 
+def GetIrtHashes(svn_rev):
+  # We don't just run this because it only prints the new DEPS lines.
+  #subprocess.check_call([sys.executable, 'src/build/download_nacl_irt.py'],
+  #                      cwd='..')
+
+  # TODO: This duplicates a chunk of stuff from download_nacl_irt.py.
+  sys.path.insert(0, 'build')
+  import download_nacl_irt
+  arches = ('x86_32', 'x86_64')
+  nacl_dir = 'native_client'
+  base_url = ('http://commondatastorage.googleapis.com/'
+              'nativeclient-archive2/irt')
+  hashes = []
+  for arch in arches:
+    url = '%s/r%s/irt_%s.nexe' % (base_url, svn_rev, arch)
+    dest_dir = os.path.join(nacl_dir, 'irt_binaries')
+    if not os.path.exists(dest_dir):
+      os.makedirs(dest_dir)
+    dest_path = os.path.join(dest_dir, 'nacl_irt_%s.nexe' % arch)
+    try:
+      download_nacl_irt.DownloadFileWithRetry(dest_path, url)
+    except urllib2.HTTPError:
+      return None
+    downloaded_hash = download_nacl_irt.HashFile(dest_path)
+    hashes.append((arch, downloaded_hash))
+  return hashes
+
+
 def GetLatestRootRev():
   rev = pysvn.Revision(pysvn.opt_revision_kind.head)
   lst = pysvn.Client().log(nacl_svn_root, revision_start=rev, revision_end=rev,
@@ -75,8 +104,11 @@ def GetNaClRev():
       age_mins = (now - lst[0].date) / 60
       print 'r%i committed %.1f minutes ago' % (
           lst[0].revision.number, age_mins)
-      if age_mins >= 10:
-        return lst[0].revision.number
+      hashes = GetIrtHashes(rev_num)
+      if hashes is None:
+        print 'skipping: IRT not done'
+      else:
+        return lst[0].revision.number, hashes
     rev_num -= 1
 
 
@@ -88,7 +120,8 @@ def GetLog(rev1, rev2):
   got = []
   for item in items:
     line1 = item.message.split('\n')[0]
-    got.append('r%i: %s\n' % (item.revision.number, line1))
+    author = item.author.split('@', 1)[0]
+    got.append('r%i: (%s) %s\n' % (item.revision.number, author, line1))
   return ''.join(got)
 
 
@@ -99,7 +132,7 @@ def Main():
 
   # TODO: The IRT is not always uploaded for the latest rev, so maybe
   # we should skip very new revisions.
-  svn_rev = GetNaClRev()
+  svn_rev, irt_hashes = GetNaClRev()
 
   deps_data = ReadFile('DEPS')
   old_rev = GetDepsKey(deps_data, 'nacl_revision')
@@ -112,25 +145,7 @@ def Main():
   msg += '\nBUG=none\nTEST=trybots\n'
   print msg
 
-  # We don't just run this because it only prints the new DEPS lines.
-  #subprocess.check_call([sys.executable, 'src/build/download_nacl_irt.py'],
-  #                      cwd='..')
-
-  # TODO: This duplicates a chunk of stuff from download_nacl_irt.py.
-  sys.path.insert(0, 'build')
-  import download_nacl_irt
-  arches = ('x86_32', 'x86_64')
-  nacl_dir = 'native_client'
-  base_url = ('http://commondatastorage.googleapis.com/'
-              'nativeclient-archive2/irt')
-  for arch in arches:
-    url = '%s/r%s/irt_%s.nexe' % (base_url, svn_rev, arch)
-    dest_dir = os.path.join(nacl_dir, 'irt_binaries')
-    if not os.path.exists(dest_dir):
-      os.makedirs(dest_dir)
-    dest_path = os.path.join(dest_dir, 'nacl_irt_%s.nexe' % arch)
-    download_nacl_irt.DownloadFileWithRetry(dest_path, url)
-    downloaded_hash = download_nacl_irt.HashFile(dest_path)
+  for arch, downloaded_hash in irt_hashes:
     key = 'nacl_irt_hash_%s' % arch
     deps_data = SetDepsKey(deps_data, key, downloaded_hash)
 
