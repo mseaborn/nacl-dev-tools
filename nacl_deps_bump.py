@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 import pysvn
 
@@ -33,6 +34,10 @@ def WriteFile(filename, data):
 # have SVN committer credentials set up.
 # nacl_svn = 'http://src.chromium.org/native_client/trunk/src/native_client'
 nacl_svn = 'svn://svn.chromium.org/native_client/trunk/src/native_client'
+# When querying for the latest revision, use the root URL.  Otherwise,
+# if the most recent change touched a branch and not trunk, the query
+# will return an empty list.
+nacl_svn_root = 'svn://svn.chromium.org/native_client'
 
 
 def MatchKey(data, key):
@@ -51,10 +56,28 @@ def SetDepsKey(data, key, value):
                   data[match.end(1):]])
 
 
-def GetNaClRev():
+def GetLatestRootRev():
   rev = pysvn.Revision(pysvn.opt_revision_kind.head)
-  lst = pysvn.Client().log(nacl_svn, revision_start=rev, revision_end=rev)
+  lst = pysvn.Client().log(nacl_svn_root, revision_start=rev, revision_end=rev,
+                           discover_changed_paths=True)
+  assert len(lst) == 1, lst
   return lst[0].revision.number
+
+
+def GetNaClRev():
+  now = time.time()
+  rev_num = GetLatestRootRev()
+  while True:
+    rev = pysvn.Revision(pysvn.opt_revision_kind.number, rev_num)
+    lst = pysvn.Client().log(nacl_svn, revision_start=rev, revision_end=rev)
+    assert len(lst) in (0, 1), lst
+    if len(lst) == 1:
+      age_mins = (now - lst[0].date) / 60
+      print 'r%i committed %.1f minutes ago' % (
+          lst[0].revision.number, age_mins)
+      if age_mins >= 10:
+        return lst[0].revision.number
+    rev_num -= 1
 
 
 def GetLog(rev1, rev2):
