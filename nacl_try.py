@@ -1,10 +1,46 @@
 #!/usr/bin/env python
 
+"""
+
+nacl_try.py tests a NaCl change on the local machine, or on remote
+machines by rsyncing the source tree to them.
+
+Usage:
+nacl_try.py "<scons args>" <dest machines...>
+
+Examples:
+
+nacl_try.py run_hello_world_test 32 64 mac winbox
+- Runs a minimal test on x86-32 Linux, x86-64 Linux, Mac and Windows.
+
+nacl_try.py 'run_hello_world_test --verbose' 32 64
+- The first arg can contain multiple Scons arguments.
+
+nacl_try.py '' 32 64
+- This is how to invoke Scons with no arguments, so that it builds
+everything.
+
+To set up a machine for use with nacl_try.py, you must first check out
+a copy of the NaCl source tree there.  For example:
+
+$ ssh mymac
+mac$ mkdir -p devel/nacl
+mac$ cd devel/nacl
+mac$ gclient config http://src.chromium.org/native_client/trunk/src/native_client
+mac$ gclient sync
+
+TODO: Add an option for running 'gclient sync'.
+TODO: Add the ability to sync/test in parallel for different machines.
+
+"""
+
 import subprocess
 import sys
 import time
 
 
+# This is a small helper for creating a Python object from a dict of
+# closures (one closure per method).
 class Obj(object):
 
     def __init__(self, **kwargs):
@@ -21,8 +57,13 @@ def memo(func):
 
 
 def make_host(host, destdir, msvc=False, msvc64=False):
+    # Memoize so that we only do the rsync once per destination
+    # location, even if we test two configurations in that location
+    # (e.g. x86-32 Mac and x86-64 Mac).
     @memo
     def sync():
+        # Note that this never deletes files, so obsolete files will
+        # get left behind in the destination directory.
         subprocess.check_call("git ls-files >filelist", shell=True)
         subprocess.check_call(
             "rsync -avz --files-from=filelist . %s:%s"
@@ -47,43 +88,28 @@ def make_this_host():
 
 
 this_host = make_this_host()
-ch = make_host("ch", "devel/nacl-svn/native_client")
-boreal = make_host("boreal", "devel/nacl-gclient/native_client")
-boreal_chrome = make_host("boreal", "devel/chromium/src/native_client")
 macpro = make_host("hydric", "devel/nacl/native_client")
 win32vm = make_host("win32vm", "devel/nacl/native_client", msvc=True)
 win32vm64 = make_host("win32vm", "devel/nacl/native_client", msvc64=True)
-bul64 = make_host("bul64", "devel/nacl/native_client")
-dove = make_host("dove", "devel/nacl/native_client")
-msneckmac = make_host("msneckmac", "/Users/mseaborn/devel/nacl/native_client")
 
 
 dest_map = {}
+
 def add_target(name, host, opts):
     dest_map[name] = (host, opts)
+
 add_target("32", this_host,
            "--mode=dbg-linux,nacl platform=x86-32 -j2")
-add_target("64ch", ch,
-           "--mode=dbg-linux,nacl platform=x86-64 -j6")
 add_target("64", this_host,
            "--mode=dbg-linux,nacl platform=x86-64 -j2")
-add_target("arm",
-           # ch,
-           this_host,
-           "--mode=dbg-linux,nacl sdl=none platform=arm -j3")
+add_target("arm", this_host,
+           "--mode=dbg-linux,nacl sdl=none platform=arm -j2")
+
 add_target("mac", macpro, "--mode=dbg-mac,nacl -j6")
-add_target("mac-chrome", boreal_chrome, "xxxx")
 add_target("mac64", macpro, "--mode=dbg-mac,nacl -j6 platform=x86-64")
-add_target("mac-opt", boreal, "--mode=opt-mac,nacl -j6")
-add_target("mac106", msneckmac, "--mode=dbg-mac,nacl -j6")
 add_target("win", win32vm, "--mode=dbg-win,nacl")# -j3")
 add_target("win64", win32vm64, "--mode=dbg-win,nacl platform=x86-64 sdl=none -j8")
-add_target("dove", dove,
-           "--mode=dbg-linux,nacl platform=arm naclsdk_validate=0 sdl=none naclsdk_mode=manual")
 
-add_target("macbook",
-           make_host("macbook", "devel/nacl-mytry/src/native_client"),
-           "--mode=dbg-mac,nacl -j2")
 add_target("winbox", make_host("winbox", "devel/nacl/native_client", msvc64=True),
            "--mode=dbg-win,nacl platform=x86-64")
 add_target("winbox32", make_host("winbox", "devel/nacl/native_client", msvc=True),
