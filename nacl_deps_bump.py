@@ -118,11 +118,13 @@ def GetLog(rev1, rev2):
       revision_start=pysvn.Revision(pysvn.opt_revision_kind.number, rev1 + 1),
       revision_end=pysvn.Revision(pysvn.opt_revision_kind.number, rev2))
   got = []
+  authors = []
   for item in items:
     line1 = item.message.split('\n')[0]
+    authors.append(item.author)
     author = item.author.split('@', 1)[0]
     got.append('r%i: (%s) %s\n' % (item.revision.number, author, line1))
-  return ''.join(got)
+  return ''.join(got), authors
 
 
 def Main():
@@ -139,11 +141,15 @@ def Main():
   deps_data = SetDepsKey(deps_data, 'nacl_revision', str(svn_rev))
   old_rev = int(old_rev)
 
+  msg_logs, authors = GetLog(old_rev, svn_rev)
   msg = 'NaCl: Update revision in DEPS, r%i -> r%i' % (old_rev, svn_rev)
   msg += '\n\nThis pulls in the following Native Client changes:\n\n'
-  msg += GetLog(old_rev, svn_rev)
+  msg += msg_logs
   msg += '\nBUG=none\nTEST=trybots\n'
   print msg
+  cc_list = ', '.join(['native-client-reviews@googlegroups.com'] +
+                      sorted(set(authors)))
+  print 'CC:', cc_list
 
   for arch, downloaded_hash in irt_hashes:
     key = 'nacl_irt_hash_%s' % arch
@@ -169,15 +175,17 @@ def Main():
   # TODO: This can ask for credentials when the cached credentials
   # expire, so could fail when automated.  Can we fix that?
   subprocess.check_call(['/home/mseaborn/devel/depot_tools_latest/git-cl',
-                         'upload', '-m', msg])
+                         'upload',
+                         '-m', msg,
+                         # This CC does not happen by default for DEPS.
+                         '--cc', cc_list,
+                         ])
   subprocess.check_call([
       '/home/mseaborn/devel/depot_tools_latest/git-try',
       '--email', 'mseaborn@chromium.org',
       '-rHEAD',
       # TODO: Omit -t to be thorough.
       '-t', 'nacl_integration',
-      # This CC does not happen by default for DEPS.
-      '--cc', 'native-client-reviews@googlegroups.com',
       ])
 
 
