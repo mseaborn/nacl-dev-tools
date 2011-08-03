@@ -128,7 +128,18 @@ def GetLog(rev1, rev2):
 
 
 def Main():
-  # TODO: Check that there are no uncommitted changes first.
+  # Check for uncommitted changes.  Note that this can still lose
+  # changes that have been committed to a detached-HEAD branch, but
+  # those should be retrievable via the reflog.  This can also lose
+  # changes that have been staged to the index but then undone in the
+  # working files.
+  proc = subprocess.Popen(['git', 'diff', '--name-only', 'HEAD'],
+                          stdout=subprocess.PIPE)
+  changes = proc.communicate()[0]
+  assert proc.wait() == 0, proc.wait()
+  if len(changes) != 0:
+    raise AssertionError('You have uncommitted changes:\n%s' % changes)
+
   subprocess.check_call(['git', 'fetch'])
   subprocess.check_call(['git', 'checkout', 'origin/trunk'])
 
