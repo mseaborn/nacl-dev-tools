@@ -143,8 +143,6 @@ def Main():
   subprocess.check_call(['git', 'fetch'])
   subprocess.check_call(['git', 'checkout', 'origin/trunk'])
 
-  # TODO: The IRT is not always uploaded for the latest rev, so maybe
-  # we should skip very new revisions.
   svn_rev, irt_hashes = GetNaClRev()
 
   deps_data = ReadFile('DEPS')
