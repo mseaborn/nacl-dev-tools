@@ -143,6 +143,8 @@ def Main():
 
   subprocess.check_call(['git', 'fetch'])
   subprocess.check_call(['git', 'checkout', 'origin/trunk'])
+  branch_name = 'auto-deps-%s' % time.strftime('%Y-%m-%d')
+  subprocess.check_call(['git', 'checkout', '-b', branch_name])
 
   svn_rev, irt_hashes = GetNaClRev()
 
@@ -178,7 +180,6 @@ def Main():
 
   WriteFile('DEPS', deps_data)
 
-  subprocess.check_call(['git', 'checkout', '-b', 'auto-deps'])
   subprocess.check_call(['git', 'commit', '-a', '-m', msg])
 
   # TODO: Remove hard-coded path.
