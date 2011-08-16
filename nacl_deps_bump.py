@@ -157,7 +157,7 @@ def Main():
   msg = 'NaCl: Update revision in DEPS, r%i -> r%i' % (old_rev, svn_rev)
   msg += '\n\nThis pulls in the following Native Client changes:\n\n'
   msg += msg_logs
-  msg += '\nBUG=none\nTEST=trybots\n'
+  msg += '\nBUG=none\nTEST=nacl_integration\n'
   print msg
   cc_list = ', '.join(['native-client-reviews@googlegroups.com'] +
                       sorted(set(authors)))
