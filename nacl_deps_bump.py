@@ -182,22 +182,19 @@ def Main():
 
   subprocess.check_call(['git', 'commit', '-a', '-m', msg])
 
-  # TODO: Remove hard-coded path.
   # TODO: This can ask for credentials when the cached credentials
   # expire, so could fail when automated.  Can we fix that?
-  subprocess.check_call(['/home/mseaborn/devel/depot_tools_latest/git-cl',
+  subprocess.check_call(['git', 'cl',
                          'upload',
                          '-m', msg,
                          # This CC does not happen by default for DEPS.
                          '--cc', cc_list,
                          ])
-  subprocess.check_call([
-      '/home/mseaborn/devel/depot_tools_latest/git-try',
-      '--email', 'mseaborn@chromium.org',
-      '-rHEAD',
-      # TODO: Omit -t to be thorough.
-      '-t', 'nacl_integration',
-      ])
+  subprocess.check_call(['git', 'try',
+                         '-rHEAD',
+                         # TODO: Omit -t to be thorough.
+                         '-t', 'nacl_integration',
+                         ])
 
 
 if __name__ == '__main__':
