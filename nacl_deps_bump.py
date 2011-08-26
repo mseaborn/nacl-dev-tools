@@ -3,12 +3,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import os
 import re
 import subprocess
 import sys
 import time
-import urllib2
 
 import pysvn
 
@@ -43,7 +41,10 @@ nacl_svn_root = 'svn://svn.chromium.org/native_client'
 
 
 def MatchKey(data, key):
-  return re.search('^\s*"%s": "(\S+)",\s*(#.*)?$' % key, data, re.M)
+  match = re.search('^\s*"%s":\s*"(\S+)",\s*(#.*)?$' % key, data, re.M)
+  if match is None:
+    raise Exception('Key %r not found' % key)
+  return match
 
 
 def GetDepsKey(data, key):
@@ -56,34 +57,6 @@ def SetDepsKey(data, key, value):
   return ''.join([data[:match.start(1)],
                   value,
                   data[match.end(1):]])
-
-
-def GetIrtHashes(svn_rev):
-  # We don't just run this because it only prints the new DEPS lines.
-  #subprocess.check_call([sys.executable, 'src/build/download_nacl_irt.py'],
-  #                      cwd='..')
-
-  # TODO: This duplicates a chunk of stuff from download_nacl_irt.py.
-  sys.path.insert(0, 'build')
-  import download_nacl_irt
-  arches = ('x86_32', 'x86_64')
-  nacl_dir = 'native_client'
-  base_url = ('http://commondatastorage.googleapis.com/'
-              'nativeclient-archive2/irt')
-  hashes = []
-  for arch in arches:
-    url = '%s/r%s/irt_%s.nexe' % (base_url, svn_rev, arch)
-    dest_dir = os.path.join(nacl_dir, 'irt_binaries')
-    if not os.path.exists(dest_dir):
-      os.makedirs(dest_dir)
-    dest_path = os.path.join(dest_dir, 'nacl_irt_%s.nexe' % arch)
-    try:
-      download_nacl_irt.DownloadFileWithRetry(dest_path, url)
-    except urllib2.HTTPError:
-      return None
-    downloaded_hash = download_nacl_irt.HashFile(dest_path)
-    hashes.append((arch, downloaded_hash))
-  return hashes
 
 
 def GetLatestRootRev():
@@ -105,11 +78,7 @@ def GetNaClRev():
       age_mins = (now - lst[0].date) / 60
       print 'r%i committed %.1f minutes ago' % (
           lst[0].revision.number, age_mins)
-      hashes = GetIrtHashes(rev_num)
-      if hashes is None:
-        print 'skipping: IRT not done'
-      else:
-        return lst[0].revision.number, hashes
+      return lst[0].revision.number
     rev_num -= 1
 
 
@@ -146,7 +115,7 @@ def Main():
   branch_name = 'auto-deps-%s' % time.strftime('%Y-%m-%d')
   subprocess.check_call(['git', 'checkout', '-b', branch_name])
 
-  svn_rev, irt_hashes = GetNaClRev()
+  svn_rev = GetNaClRev()
 
   deps_data = ReadFile('DEPS')
   old_rev = GetDepsKey(deps_data, 'nacl_revision')
@@ -163,20 +132,31 @@ def Main():
                       sorted(set(authors)))
   print 'CC:', cc_list
 
-  for arch, downloaded_hash in irt_hashes:
-    key = 'nacl_irt_hash_%s' % arch
-    deps_data = SetDepsKey(deps_data, key, downloaded_hash)
-
   # Copy revision numbers across from native_client/DEPS.
   # We do this because 'From()' is not supported in Chrome's DEPS.
   proc = subprocess.Popen(['svn', 'cat', '%s/DEPS@%s' % (nacl_svn, svn_rev)],
                           stdout=subprocess.PIPE)
   nacl_deps = proc.communicate()[0]
   assert proc.wait() == 0, proc.wait()
-  deps_data = SetDepsKey(deps_data, 'nacl_chrome_ppapi_revision',
-                         GetDepsKey(nacl_deps, 'chrome_ppapi_rev'))
   deps_data = SetDepsKey(deps_data, 'nacl_tools_revision',
                          GetDepsKey(nacl_deps, 'tools_rev'))
+
+  # TODO(mseaborn): Enable the code for bumping the toolchain rev below.
+
+  # toolchain_rev = GetDepsKey(nacl_deps, 'x86_toolchain_version')
+  # deps_data = SetDepsKey(deps_data, 'nacl_toolchain_revision',
+  #                        toolchain_rev)
+
+  # sys.path.insert(0, 'native_client/build')
+  # import download_toolchains
+  # import toolchainbinaries
+  # for key, value in \
+  #       download_toolchains.GetUpdatedDEPS(
+  #           toolchainbinaries.BASE_DOWNLOAD_URL,
+  #           toolchain_rev,
+  #           nacl_newlib_only=True):
+  #   print 'setting %r = %r' % (key, value)
+  #   deps_data = SetDepsKey(deps_data, key, value)
 
   WriteFile('DEPS', deps_data)
 
