@@ -91,8 +91,11 @@ def GetLog(rev1, rev2):
   authors = []
   for item in items:
     line1 = item.message.split('\n')[0]
-    authors.append(item.author)
     author = item.author.split('@', 1)[0]
+    if line1 == 'Update .DEPS.git' and author == 'chrome-admin':
+      # Skip these automated commits.
+      continue
+    authors.append(item.author)
     got.append('r%i: (%s) %s\n' % (item.revision.number, author, line1))
   return ''.join(got), authors
 
