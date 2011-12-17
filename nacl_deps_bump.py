@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 import re
+import optparse
 import subprocess
 import sys
 import time
@@ -101,6 +102,17 @@ def GetLog(rev1, rev2):
 
 
 def Main():
+  parser = optparse.OptionParser()
+  parser.add_option('-n', '--no-commit', action='store_true', default=False,
+                    help='Do not run "git commit" (implies --no-upload)')
+  parser.add_option('-u', '--no-upload', action='store_true', default=False,
+                    help='Do not run "git cl upload" (implies --no-try)')
+  parser.add_option('-T', '--no-try', action='store_true', default=False,
+                    help='Do not start a trybot run')
+  options, args = parser.parse_args()
+  if len(args) != 0:
+    parser.error('Got unexpected arguments')
+
   # Check for uncommitted changes.  Note that this can still lose
   # changes that have been committed to a detached-HEAD branch, but
   # those should be retrievable via the reflog.  This can also lose
@@ -163,8 +175,12 @@ def Main():
 
   WriteFile('DEPS', deps_data)
 
+  if options.no_commit:
+    return
   subprocess.check_call(['git', 'commit', '-a', '-m', msg])
 
+  if options.no_upload:
+    return
   # TODO: This can ask for credentials when the cached credentials
   # expire, so could fail when automated.  Can we fix that?
   subprocess.check_call(['git', 'cl',
@@ -173,6 +189,8 @@ def Main():
                          # This CC does not happen by default for DEPS.
                          '--cc', cc_list,
                          ])
+  if options.no_try:
+    return
   subprocess.check_call(['git', 'try',
                          '-rHEAD',
                          # TODO: Omit -t to be thorough.
