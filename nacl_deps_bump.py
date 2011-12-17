@@ -192,9 +192,8 @@ def Main():
   if options.no_try:
     return
   subprocess.check_call(['git', 'try',
+                         '-b', 'linux_rel,mac_rel,win_rel,linux_chromeos',
                          '-rHEAD',
-                         # TODO: Omit -t to be thorough.
-                         '-t', 'nacl_integration',
                          ])
 
 
