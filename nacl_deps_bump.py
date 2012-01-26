@@ -9,6 +9,8 @@ import subprocess
 import sys
 import time
 
+# This dependency can be installed with:
+# apt-get install python-svn
 import pysvn
 
 # This script creates a code review for an update of Chromium's DEPS
