@@ -105,6 +105,8 @@ def GetLog(rev1, rev2):
 
 def Main():
   parser = optparse.OptionParser()
+  parser.add_option('-t', '--toolchain', action='store_true', default=False,
+                    help='Update NaCl toolchain revisions too')
   parser.add_option('-n', '--no-commit', action='store_true', default=False,
                     help='Do not run "git commit" (implies --no-upload)')
   parser.add_option('-u', '--no-upload', action='store_true', default=False,
@@ -158,22 +160,26 @@ def Main():
   deps_data = SetDepsKey(deps_data, 'nacl_tools_revision',
                          GetDepsKey(nacl_deps, 'tools_rev'))
 
-  # TODO(mseaborn): Enable the code for bumping the toolchain rev below.
+  if options.toolchain:
+    toolchain_rev = GetDepsKey(nacl_deps, 'x86_toolchain_version')
+    deps_data = SetDepsKey(deps_data, 'nacl_toolchain_revision',
+                           toolchain_rev)
 
-  # toolchain_rev = GetDepsKey(nacl_deps, 'x86_toolchain_version')
-  # deps_data = SetDepsKey(deps_data, 'nacl_toolchain_revision',
-  #                        toolchain_rev)
+    sys.path.insert(0, 'native_client/build')
+    import download_toolchains
+    import toolchainbinaries
 
-  # sys.path.insert(0, 'native_client/build')
-  # import download_toolchains
-  # import toolchainbinaries
-  # for key, value in \
-  #       download_toolchains.GetUpdatedDEPS(
-  #           toolchainbinaries.BASE_DOWNLOAD_URL,
-  #           toolchain_rev,
-  #           nacl_newlib_only=True):
-  #   print 'setting %r = %r' % (key, value)
-  #   deps_data = SetDepsKey(deps_data, key, value)
+    # Mock up the optparse options object GetUpdatedDEPS expects.
+    class DownloadOptions(object):
+      nacl_newlib_only = False
+      no_pnacl = True
+      no_arm_trusted = True
+      base_url = toolchainbinaries.BASE_DOWNLOAD_URL
+      x86_version = toolchain_rev
+
+    toolchain_deps = download_toolchains.GetUpdatedDEPS(DownloadOptions())
+    for key, value in toolchain_deps.iteritems():
+      deps_data = SetDepsKey(deps_data, key, value)
 
   WriteFile('DEPS', deps_data)
 
