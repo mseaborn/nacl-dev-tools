@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2011 The Native Client Authors. All rights reserved.
+# Copyright (c) 2012 The Native Client Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -130,9 +130,9 @@ def Main():
     raise AssertionError('You have uncommitted changes:\n%s' % changes)
 
   subprocess.check_call(['git', 'fetch'])
-  subprocess.check_call(['git', 'checkout', 'origin/trunk'])
   branch_name = 'auto-deps-%s' % time.strftime('%Y-%m-%d')
-  subprocess.check_call(['git', 'checkout', '-b', branch_name])
+  subprocess.check_call(['git', 'checkout', '-b', branch_name,
+                         'origin/master'])
 
   svn_rev = GetNaClRev()
 
