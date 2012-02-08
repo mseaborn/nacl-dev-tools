@@ -161,9 +161,12 @@ def Main():
                          GetDepsKey(nacl_deps, 'tools_rev'))
 
   if options.toolchain:
-    toolchain_rev = GetDepsKey(nacl_deps, 'x86_toolchain_version')
+    x86_toolchain_rev = GetDepsKey(nacl_deps, 'x86_toolchain_version')
     deps_data = SetDepsKey(deps_data, 'nacl_toolchain_revision',
-                           toolchain_rev)
+                           x86_toolchain_rev)
+    pnacl_toolchain_rev = GetDepsKey(nacl_deps, 'pnacl_toolchain_version')
+    deps_data = SetDepsKey(deps_data, 'pnacl_toolchain_revision',
+                           pnacl_toolchain_rev)
 
     sys.path.insert(0, 'native_client/build')
     import download_toolchains
@@ -172,10 +175,11 @@ def Main():
     # Mock up the optparse options object GetUpdatedDEPS expects.
     class DownloadOptions(object):
       nacl_newlib_only = False
-      no_pnacl = True
+      no_pnacl = False
       no_arm_trusted = True
       base_url = toolchainbinaries.BASE_DOWNLOAD_URL
-      x86_version = toolchain_rev
+      x86_version = x86_toolchain_rev
+      pnacl_version = pnacl_toolchain_rev
 
     toolchain_deps = download_toolchains.GetUpdatedDEPS(DownloadOptions())
     for key, value in toolchain_deps.iteritems():
