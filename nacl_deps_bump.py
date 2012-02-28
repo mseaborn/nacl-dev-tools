@@ -129,12 +129,12 @@ def Main():
   if len(changes) != 0:
     raise AssertionError('You have uncommitted changes:\n%s' % changes)
 
+  svn_rev = GetNaClRev()
+
   subprocess.check_call(['git', 'fetch'])
-  branch_name = 'auto-deps-%s' % time.strftime('%Y-%m-%d')
+  branch_name = 'nacl-deps-r%s' % svn_rev
   subprocess.check_call(['git', 'checkout', '-b', branch_name,
                          'origin/master'])
-
-  svn_rev = GetNaClRev()
 
   deps_data = ReadFile('DEPS')
   old_rev = GetDepsKey(deps_data, 'nacl_revision')
