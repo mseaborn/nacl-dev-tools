@@ -205,7 +205,6 @@ def Main():
     return
   subprocess.check_call(['git', 'try',
                          '-b', 'linux_rel,mac_rel,win_rel,linux_chromeos',
-                         '-rHEAD',
                          ])
 
 
