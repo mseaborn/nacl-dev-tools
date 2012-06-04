@@ -105,6 +105,8 @@ def GetLog(rev1, rev2):
 
 def Main():
   parser = optparse.OptionParser()
+  parser.add_option('-r', '--revision', default=None, type='int',
+                    help='NaCl SVN revision to use (default is HEAD)')
   parser.add_option('-t', '--toolchain', action='store_true', default=False,
                     help='Update NaCl toolchain revisions too')
   parser.add_option('-n', '--no-commit', action='store_true', default=False,
@@ -129,7 +131,9 @@ def Main():
   if len(changes) != 0:
     raise AssertionError('You have uncommitted changes:\n%s' % changes)
 
-  svn_rev = GetNaClRev()
+  svn_rev = options.revision
+  if svn_rev is None:
+    svn_rev = GetNaClRev()
 
   subprocess.check_call(['git', 'fetch'])
   branch_name = 'nacl-deps-r%s' % svn_rev
