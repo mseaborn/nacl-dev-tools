@@ -5,6 +5,7 @@
 
 import re
 import optparse
+import os
 import subprocess
 import sys
 import time
@@ -103,7 +104,7 @@ def GetLog(rev1, rev2):
   return ''.join(got), authors
 
 
-def Main():
+def Main(args):
   parser = optparse.OptionParser()
   parser.add_option('-r', '--revision', default=None, type='int',
                     help='NaCl SVN revision to use (default is HEAD)')
@@ -115,7 +116,7 @@ def Main():
                     help='Do not run "git cl upload" (implies --no-try)')
   parser.add_option('-T', '--no-try', action='store_true', default=False,
                     help='Do not start a trybot run')
-  options, args = parser.parse_args()
+  options, args = parser.parse_args(args)
   if len(args) != 0:
     parser.error('Got unexpected arguments')
 
@@ -197,6 +198,9 @@ def Main():
 
   if options.no_upload:
     return
+  # Override EDITOR so that "git cl upload" will run non-interactively.
+  environ = os.environ.copy()
+  environ['EDITOR'] = 'true'
   # TODO: This can ask for credentials when the cached credentials
   # expire, so could fail when automated.  Can we fix that?
   subprocess.check_call(['git', 'cl',
@@ -204,7 +208,7 @@ def Main():
                          '-m', msg,
                          # This CC does not happen by default for DEPS.
                          '--cc', cc_list,
-                         ])
+                         ], env=environ)
   if options.no_try:
     return
   subprocess.check_call(['git', 'try',
@@ -213,4 +217,4 @@ def Main():
 
 
 if __name__ == '__main__':
-  Main()
+  Main(sys.argv[1:])
