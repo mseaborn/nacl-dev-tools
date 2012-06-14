@@ -211,9 +211,8 @@ def Main(args):
                          ], env=environ)
   if options.no_try:
     return
-  subprocess.check_call(['git', 'try',
-                         '-b', 'linux_rel,mac_rel,win_rel,linux_chromeos',
-                         ])
+  bots = 'linux_rel,mac_rel,win_rel,linux_chromeos,cros_tegra2'
+  subprocess.check_call(['git', 'try', '-b', bots])
 
 
 if __name__ == '__main__':
