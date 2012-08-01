@@ -108,8 +108,6 @@ def Main(args):
   parser = optparse.OptionParser()
   parser.add_option('-r', '--revision', default=None, type='int',
                     help='NaCl SVN revision to use (default is HEAD)')
-  parser.add_option('-t', '--toolchain', action='store_true', default=False,
-                    help='Update NaCl toolchain revisions too')
   parser.add_option('-n', '--no-commit', action='store_true', default=False,
                     help='Do not run "git commit" (implies --no-upload)')
   parser.add_option('-u', '--no-upload', action='store_true', default=False,
@@ -164,31 +162,6 @@ def Main(args):
   assert proc.wait() == 0, proc.wait()
   deps_data = SetDepsKey(deps_data, 'nacl_tools_revision',
                          GetDepsKey(nacl_deps, 'tools_rev'))
-
-  if options.toolchain:
-    x86_toolchain_rev = GetDepsKey(nacl_deps, 'x86_toolchain_version')
-    deps_data = SetDepsKey(deps_data, 'nacl_toolchain_revision',
-                           x86_toolchain_rev)
-    pnacl_toolchain_rev = GetDepsKey(nacl_deps, 'pnacl_toolchain_version')
-    deps_data = SetDepsKey(deps_data, 'pnacl_toolchain_revision',
-                           pnacl_toolchain_rev)
-
-    sys.path.insert(0, 'native_client/build')
-    import download_toolchains
-    import toolchainbinaries
-
-    # Mock up the optparse options object GetUpdatedDEPS expects.
-    class DownloadOptions(object):
-      nacl_newlib_only = False
-      no_pnacl = False
-      no_arm_trusted = True
-      base_url = toolchainbinaries.BASE_DOWNLOAD_URL
-      x86_version = x86_toolchain_rev
-      pnacl_version = pnacl_toolchain_rev
-
-    toolchain_deps = download_toolchains.GetUpdatedDEPS(DownloadOptions())
-    for key, value in toolchain_deps.iteritems():
-      deps_data = SetDepsKey(deps_data, key, value)
 
   WriteFile('DEPS', deps_data)
 
