@@ -9,6 +9,8 @@ import time
 
 import pysvn
 
+import get_chromium_lkgr
+import get_nacl_revs
 import nacl_deps_bump
 
 
@@ -58,6 +60,23 @@ def Main():
   if rev_diff > REVS_THRESHOLD:
     print 'revision count threshold passed: trigger new build'
     do_build = True
+
+  # Check Chromium's LKGR to avoid bad try runs.
+  last_deps_bump = get_nacl_revs.GetSvnLastDepsBump()
+  print 'The last nacl_revision change in Chromium was in r%i' % last_deps_bump
+  chromium_lkgr = get_chromium_lkgr.GetLkgr()
+  print 'Chromium LKGR is r%i' % chromium_lkgr
+  if chromium_lkgr >= last_deps_bump:
+    print 'Chromium LKGR includes last nacl_revision change (good)'
+  else:
+    print 'Chromium LKGR has not caught up yet (bad)'
+    # Don't attempt to run a new try job, because we generate a patch
+    # against Chromium's latest revision which would fail to apply
+    # against LKGR, which is what the trybots use by default.  We
+    # could pass "-rHEAD" to the trybots, but then the trybots are
+    # more likely to fail if we get a bad revision of Chromium.
+    do_build = False
+
   if do_build:
     nacl_deps_bump.Main(['--revision', str(newest_rev)])
 
