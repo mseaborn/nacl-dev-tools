@@ -184,7 +184,7 @@ def Main(args):
                          ], env=environ)
   if options.no_try:
     return
-  bots = 'linux_rel,mac_rel,win_rel,linux_chromeos,cros_daisy'
+  bots = 'linux_rel,mac_rel,win_rel,linux_chromeos,cros_daisy,linux_rel_naclmore,mac_rel_naclmore,win_rel_naclmore'
   subprocess.check_call(['git', 'try', '-b', bots])
 
 
