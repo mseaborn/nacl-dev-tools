@@ -3,6 +3,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""
+This tool helps with updating nacl_revision in Chromium's DEPS file to
+the latest revision of NaCl.  It creates a Rietveld code review for
+the update and kicks off a try job, using relevant trybots.
+
+This tool should be run from a Git checkout of Chromium.
+"""
+
 import re
 import optparse
 import os
@@ -13,9 +21,6 @@ import time
 # This dependency can be installed with:
 # apt-get install python-svn
 import pysvn
-
-# This script creates a code review for an update of Chromium's DEPS
-# file to the latest revision of NaCl, and kicks off a try job.
 
 
 def ReadFile(filename):
@@ -105,7 +110,7 @@ def GetLog(rev1, rev2):
 
 
 def Main(args):
-  parser = optparse.OptionParser()
+  parser = optparse.OptionParser('%prog [options]\n\n' + __doc__.strip())
   parser.add_option('-r', '--revision', default=None, type='int',
                     help='NaCl SVN revision to use (default is HEAD)')
   parser.add_option('-n', '--no-commit', action='store_true', default=False,
@@ -184,6 +189,7 @@ def Main(args):
                          ], env=environ)
   if options.no_try:
     return
+  # This is on a single line to make it easier to copy and paste.
   bots = 'linux_rel,mac_rel,win_rel,linux_chromeos,cros_daisy,linux_rel_naclmore,mac_rel_naclmore,win_rel_naclmore'
   subprocess.check_call(['git', 'try', '-b', bots])
 
