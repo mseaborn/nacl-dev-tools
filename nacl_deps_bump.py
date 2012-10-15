@@ -6,7 +6,8 @@
 """
 This tool helps with updating nacl_revision in Chromium's DEPS file to
 the latest revision of NaCl.  It creates a Rietveld code review for
-the update and kicks off a try job, using relevant trybots.
+the update, listing the new NaCl commits.  It kicks off a try job,
+using relevant trybots.
 
 This tool should be run from a Git checkout of Chromium.
 """
