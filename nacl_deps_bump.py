@@ -57,12 +57,12 @@ def MatchKey(data, key):
   return match
 
 
-def GetDepsKey(data, key):
+def GetDepsField(data, key):
   match = MatchKey(data, key)
   return match.group(1)
 
 
-def SetDepsKey(data, key, value):
+def SetDepsField(data, key, value):
   match = MatchKey(data, key)
   return ''.join([data[:match.start(1)],
                   value,
@@ -146,8 +146,8 @@ def Main(args):
                          'origin/master'])
 
   deps_data = ReadFile('DEPS')
-  old_rev = GetDepsKey(deps_data, 'nacl_revision')
-  deps_data = SetDepsKey(deps_data, 'nacl_revision', str(svn_rev))
+  old_rev = GetDepsField(deps_data, 'nacl_revision')
+  deps_data = SetDepsField(deps_data, 'nacl_revision', str(svn_rev))
   old_rev = int(old_rev)
 
   msg_logs, authors = GetLog(old_rev, svn_rev)
@@ -166,8 +166,8 @@ def Main(args):
                           stdout=subprocess.PIPE)
   nacl_deps = proc.communicate()[0]
   assert proc.wait() == 0, proc.wait()
-  deps_data = SetDepsKey(deps_data, 'nacl_tools_revision',
-                         GetDepsKey(nacl_deps, 'tools_rev'))
+  deps_data = SetDepsField(deps_data, 'nacl_tools_revision',
+                           GetDepsField(nacl_deps, 'tools_rev'))
 
   WriteFile('DEPS', deps_data)
 
