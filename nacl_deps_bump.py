@@ -42,12 +42,12 @@ def WriteFile(filename, data):
 
 # The 'svn:' URL is faster than the 'http:' URL but only works if you
 # have SVN committer credentials set up.
-# nacl_svn = 'http://src.chromium.org/native_client/trunk/src/native_client'
-nacl_svn = 'svn://svn.chromium.org/native_client/trunk/src/native_client'
+# NACL_SVN = 'http://src.chromium.org/native_client/trunk/src/native_client'
+NACL_SVN = 'svn://svn.chromium.org/native_client/trunk/src/native_client'
 # When querying for the latest revision, use the root URL.  Otherwise,
 # if the most recent change touched a branch and not trunk, the query
 # will return an empty list.
-nacl_svn_root = 'svn://svn.chromium.org/native_client'
+NACL_SVN_ROOT = 'svn://svn.chromium.org/native_client'
 
 
 def MatchKey(data, key):
@@ -71,7 +71,7 @@ def SetDepsKey(data, key, value):
 
 def GetLatestRootRev():
   rev = pysvn.Revision(pysvn.opt_revision_kind.head)
-  lst = pysvn.Client().log(nacl_svn_root, revision_start=rev, revision_end=rev,
+  lst = pysvn.Client().log(NACL_SVN_ROOT, revision_start=rev, revision_end=rev,
                            discover_changed_paths=True)
   assert len(lst) == 1, lst
   return lst[0].revision.number
@@ -82,7 +82,7 @@ def GetNaClRev():
   rev_num = GetLatestRootRev()
   while True:
     rev = pysvn.Revision(pysvn.opt_revision_kind.number, rev_num)
-    lst = pysvn.Client().log(nacl_svn, revision_start=rev, revision_end=rev)
+    lst = pysvn.Client().log(NACL_SVN, revision_start=rev, revision_end=rev)
     assert len(lst) in (0, 1), lst
     if len(lst) == 1:
       age_mins = (now - lst[0].date) / 60
@@ -94,7 +94,7 @@ def GetNaClRev():
 
 def GetLog(rev1, rev2):
   items = pysvn.Client().log(
-      nacl_svn,
+      NACL_SVN,
       revision_start=pysvn.Revision(pysvn.opt_revision_kind.number, rev1 + 1),
       revision_end=pysvn.Revision(pysvn.opt_revision_kind.number, rev2))
   got = []
@@ -162,7 +162,7 @@ def Main(args):
 
   # Copy revision numbers across from native_client/DEPS.
   # We do this because 'From()' is not supported in Chrome's DEPS.
-  proc = subprocess.Popen(['svn', 'cat', '%s/DEPS@%s' % (nacl_svn, svn_rev)],
+  proc = subprocess.Popen(['svn', 'cat', '%s/DEPS@%s' % (NACL_SVN, svn_rev)],
                           stdout=subprocess.PIPE)
   nacl_deps = proc.communicate()[0]
   assert proc.wait() == 0, proc.wait()
@@ -180,8 +180,9 @@ def Main(args):
   # Override EDITOR so that "git cl upload" will run non-interactively.
   environ = os.environ.copy()
   environ['EDITOR'] = 'true'
-  # TODO: This can ask for credentials when the cached credentials
-  # expire, so could fail when automated.  Can we fix that?
+  # TODO(mseaborn): This can ask for credentials when the cached
+  # credentials expire, so could fail when automated.  Can we fix
+  # that?
   subprocess.check_call(['git', 'cl',
                          'upload',
                          '-m', msg,

@@ -44,7 +44,7 @@ def GetRevTime(svn_root, rev_num):
 def Main():
   last_tried_rev = max([1] + GetJobs())
   print 'last tried NaCl revision is r%i' % last_tried_rev
-  age = time.time() - GetRevTime(nacl_deps_bump.nacl_svn_root, last_tried_rev)
+  age = time.time() - GetRevTime(nacl_deps_bump.NACL_SVN_ROOT, last_tried_rev)
   print 'age of r%i: %.1f hours' % (last_tried_rev, age / (60 * 60))
 
   newest_rev = nacl_deps_bump.GetNaClRev()
