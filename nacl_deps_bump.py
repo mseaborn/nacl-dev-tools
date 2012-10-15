@@ -78,6 +78,13 @@ def GetLatestRootRev():
 
 
 def GetNaClRev():
+  # Find the revision number for the most recent commit to the subdir
+  # specified by NACL_SVN.  Unfortunately, SVN does not make it easy
+  # to query this directly.  If the HEAD commit did not change the
+  # subdir (e.g. because it changed other branches), "svn log
+  # -rHEAD:HEAD <subdir>" yields an empty list.  This means we must
+  # start with the latest root revision and search backwards until we
+  # hit a change to the subdir.
   now = time.time()
   rev_num = GetLatestRootRev()
   while True:
@@ -93,6 +100,9 @@ def GetNaClRev():
 
 
 def GetLog(rev1, rev2):
+  # Get info on commits from rev1 (older, exclusive) to rev2 (newer,
+  # inclusive).  Returns commit info formatted as a string, and a list
+  # of author e-mail addresses.
   items = pysvn.Client().log(
       NACL_SVN,
       revision_start=pysvn.Revision(pysvn.opt_revision_kind.number, rev1 + 1),
