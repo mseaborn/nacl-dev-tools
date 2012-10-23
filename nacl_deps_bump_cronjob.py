@@ -3,6 +3,20 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""
+This tool is a wrapper around nacl_deps_bump.py that is intended to be
+run from a cron job.
+
+This tool kicks off try jobs for updating nacl_revision in Chromium's
+DEPS file.  To reduce load on the try servers, it kicks off a new try
+job when a sufficient number of new NaCl revisions have appeared, or a
+sufficient time has elapsed, since its last try job.
+
+Like nacl_deps_bump.py, this tool should be run from a Git checkout of
+Chromium.
+"""
+
+import optparse
 import re
 import subprocess
 import time
@@ -18,10 +32,15 @@ import nacl_deps_bump
 REVS_THRESHOLD = 10
 
 # When the last revision is this old, we kick off a new build.
-TIME_THRESHOLD = 60*60*12 # 12 hours
+TIME_THRESHOLD = 60 * 60 * 12 # 12 hours
 
 
-def GetJobs():
+# Returns a list of NaCl SVN revision numbers that we have already
+# kicked off try jobs for.  This is based on the branch names in the
+# current Git repo.  This is imperfect because we might have created a
+# branch before but failed to send a try job for it.  We err on the
+# side of not spamming the trybots.
+def GetExistingJobs():
   proc = subprocess.Popen(['git', 'for-each-ref',
                            '--format', '%(refname:short)',
                            'refs/heads/*'], stdout=subprocess.PIPE)
@@ -34,6 +53,8 @@ def GetJobs():
   return revs
 
 
+# Returns the time that the given SVN revision was committed, as a
+# Unix timestamp.
 def GetRevTime(svn_root, rev_num):
   rev = pysvn.Revision(pysvn.opt_revision_kind.number, rev_num)
   lst = pysvn.Client().log(svn_root, revision_start=rev, revision_end=rev)
@@ -42,7 +63,12 @@ def GetRevTime(svn_root, rev_num):
 
 
 def Main():
-  last_tried_rev = max([1] + GetJobs())
+  parser = optparse.OptionParser('%prog\n\n' + __doc__.strip())
+  options, args = parser.parse_args()
+  if len(args) != 0:
+    parser.error('Got unexpected arguments')
+
+  last_tried_rev = max([1] + GetExistingJobs())
   print 'last tried NaCl revision is r%i' % last_tried_rev
   age = time.time() - GetRevTime(nacl_deps_bump.NACL_SVN_ROOT, last_tried_rev)
   print 'age of r%i: %.1f hours' % (last_tried_rev, age / (60 * 60))
