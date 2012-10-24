@@ -69,22 +69,22 @@ def Main():
     parser.error('Got unexpected arguments')
 
   last_tried_rev = max([1] + GetExistingJobs())
-  print 'last tried NaCl revision is r%i' % last_tried_rev
+  print 'Last tried NaCl revision is r%i' % last_tried_rev
   age = time.time() - GetRevTime(nacl_deps_bump.NACL_SVN_ROOT, last_tried_rev)
-  print 'age of r%i: %.1f hours' % (last_tried_rev, age / (60 * 60))
+  print 'Age of r%i is %.1f hours' % (last_tried_rev, age / (60 * 60))
 
   newest_rev = nacl_deps_bump.GetNaClRev()
   rev_diff = newest_rev - last_tried_rev
-  print '%i revisions since last try' % rev_diff
+  print 'There have been %i NaCl revisions since our last try job' % rev_diff
 
   do_build = False
   if age > TIME_THRESHOLD:
-    print 'time threshold passed: trigger new build'
+    print 'Time threshold passed: trigger new build'
     do_build = True
   # Note that this comparison ignores that the commits might be to
   # branches rather the trunk.
   if rev_diff > REVS_THRESHOLD:
-    print 'revision count threshold passed: trigger new build'
+    print 'Revision count threshold passed: trigger new build'
     do_build = True
 
   # Check Chromium's LKGR to avoid bad try runs.
