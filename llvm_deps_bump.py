@@ -8,8 +8,7 @@ import os
 import subprocess
 import sys
 
-from nacl_deps_bump import ReadFile, WriteFile, GetDepsField, SetDepsField
-import nacl_deps_bump
+from deps_bump import ReadFile, WriteFile, GetDepsField, SetDepsField
 
 
 LLVM_DIR = 'pnacl/git/llvm'
