@@ -34,9 +34,19 @@ def GetLog(rev1, rev2):
                               + log_args, cwd=LLVM_DIR)
   authors_data = GetCommandOutput(['git', 'log', '--pretty=%ae']
                                   + log_args, cwd=LLVM_DIR)
+  full_log = GetCommandOutput(['git', 'log', '--pretty=%B']
+                              + log_args, cwd=LLVM_DIR)
   log = '\n'.join(reversed(log_data.strip().split('\n'))) + '\n'
   authors = authors_data.strip().split('\n')
-  return log, authors
+  bugs = []
+  for line in full_log.split('\n'):
+    if line.startswith('BUG='):
+      bug = line[4:].strip()
+      if bug not in bugs:
+        bugs.append('BUG= %s\n' % bug)
+  if len(bugs) == 0:
+    bugs = ['BUG=none\n']
+  return log, authors, ''.join(bugs)
 
 
 def AssertNoUncommittedChanges():
@@ -83,11 +93,12 @@ def Main(args):
   deps_data = SetDepsField(deps_data, deps_field, new_rev)
   WriteFile(deps_file, deps_data)
 
-  msg_logs, authors = GetLog(old_rev, new_rev)
+  msg_logs, authors, bugs = GetLog(old_rev, new_rev)
   msg = 'PNaCl: Update LLVM revision in pnacl/DEPS'
   msg += '\n\nThis pulls in the following LLVM changes:\n\n'
   msg += msg_logs
-  msg += '\nBUG=none\n'
+  msg += '\n'
+  msg += bugs
   msg += 'TEST=PNaCl toolchain trybots\n'
   print msg
   subprocess.check_call(['git', 'commit', '-a', '-m', msg])
