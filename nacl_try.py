@@ -126,7 +126,7 @@ add_target("xeric", make_host("xeric", "devel/nacl/native_client"),
 
 
 def main(args):
-    target = args[0]
+    target = args[0].replace('\n', ' ')
     dests = args[1:]
     if len(dests) == 0:
         print "No dests given"
