@@ -57,6 +57,10 @@ def Main(args):
   parser = optparse.OptionParser()
   parser.add_option('-r', '--revision', default=None, type='string',
                     help='LLVM Git revision to use')
+  parser.add_option('-u', '--no-upload', action='store_true', default=False,
+                    help='Do not run "git cl upload" (implies --no-try)')
+  parser.add_option('-T', '--no-try', action='store_true', default=False,
+                    help='Do not start a trybot run')
   options, args = parser.parse_args(args)
   if len(args) != 0:
     parser.error('Got unexpected arguments')
@@ -93,6 +97,8 @@ def Main(args):
   branch_name = 'llvm-deps-%s' % new_rev[:8]
   subprocess.check_call(['git', 'checkout', '-b', branch_name])
 
+  if options.no_upload:
+    return
   environ = os.environ.copy()
   environ['EDITOR'] = 'true'
   # TODO(mseaborn): This can ask for credentials when the cached
@@ -100,6 +106,8 @@ def Main(args):
   # that?
   subprocess.check_call(['git', 'cl', 'upload', '-m', msg, '--cc', cc_list],
                         env=environ)
+  if options.no_try:
+    return
   subprocess.check_call(['git', 'try'])
 
 
