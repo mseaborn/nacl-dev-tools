@@ -39,11 +39,12 @@ def GetLog(rev1, rev2):
   log = '\n'.join(reversed(log_data.strip().split('\n'))) + '\n'
   authors = authors_data.strip().split('\n')
   bugs = []
-  for line in full_log.split('\n'):
+  for line in reversed(full_log.split('\n')):
     if line.startswith('BUG='):
       bug = line[4:].strip()
-      if bug not in bugs:
-        bugs.append('BUG= %s\n' % bug)
+      bug_line = 'BUG= %s\n' % bug
+      if bug_line not in bugs and bug != 'none':
+        bugs.append(bug_line)
   if len(bugs) == 0:
     bugs = ['BUG=none\n']
   return log, authors, ''.join(bugs)
