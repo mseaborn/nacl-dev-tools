@@ -63,6 +63,9 @@ def AssertNoUncommittedChanges():
 
 def Main(args):
   parser = optparse.OptionParser()
+  parser.add_option('--list', action='store_true', default=False,
+                    dest='list_only',
+                    help='Only list the new Git revisions to be pulled in')
   parser.add_option('-c', '--component', default='llvm', type='string',
                     help='Subdirectory of pnacl/git/ to update DEPS from')
   parser.add_option('-r', '--revision', default=None, type='string',
@@ -88,15 +91,14 @@ def Main(args):
     new_rev = GetNewRev(git_dir)
 
   subprocess.check_call(['git', 'fetch'])
-  subprocess.check_call(['git', 'checkout', 'origin/master'])
 
   deps_file = 'pnacl/DEPS'
-  deps_data = ReadFile(deps_file)
+  deps_data = GetCommandOutput(['git', 'cat-file', 'blob',
+                                'origin/master:%s' % deps_file])
   old_rev = GetDepsField(deps_data, deps_field)
   if new_rev == old_rev:
     raise AssertionError('No new changes!')
   deps_data = SetDepsField(deps_data, deps_field, new_rev)
-  WriteFile(deps_file, deps_data)
 
   msg_logs, authors, bugs = GetLog(git_dir, old_rev, new_rev)
   msg = 'PNaCl: Update %s revision in pnacl/DEPS' % component_name
@@ -108,9 +110,14 @@ def Main(args):
   msg += bugs
   msg += 'TEST=PNaCl toolchain trybots\n'
   print msg
-  subprocess.check_call(['git', 'commit', '-a', '-m', msg])
   cc_list = ', '.join(sorted(set(authors)))
   print 'CC:', cc_list
+  if options.list_only:
+    return
+
+  subprocess.check_call(['git', 'checkout', 'origin/master'])
+  WriteFile(deps_file, deps_data)
+  subprocess.check_call(['git', 'commit', '-a', '-m', msg])
 
   branch_name = '%s-deps-%s' % (options.component, new_rev[:8])
   subprocess.check_call(['git', 'checkout', '-b', branch_name])
