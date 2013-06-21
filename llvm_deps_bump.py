@@ -40,7 +40,7 @@ def GetLog(git_dir, rev1, rev2):
     if line.startswith('BUG='):
       bug = line[4:].strip()
       bug_line = 'BUG= %s\n' % bug
-      if bug_line not in bugs and bug != 'none':
+      if bug_line not in bugs and bug.lower() != 'none':
         bugs.append(bug_line)
   if len(bugs) == 0:
     bugs = ['BUG=none\n']
