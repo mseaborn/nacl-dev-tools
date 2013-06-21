@@ -100,7 +100,9 @@ def Main(args):
 
   msg_logs, authors, bugs = GetLog(git_dir, old_rev, new_rev)
   msg = 'PNaCl: Update %s revision in pnacl/DEPS' % component_name
-  msg += '\n\nThis pulls in the following %s changes:\n\n' % component_name
+  msg += '\n\nThis pulls in the following %s %s:\n\n' % (
+      component_name,
+      {True: 'change', False: 'changes'}[len(msg_logs) == 1])
   msg += msg_logs
   msg += '\n'
   msg += bugs
