@@ -80,9 +80,11 @@ def Main(args):
 
   git_dir = os.path.join('pnacl/git', options.component)
   component_name = {'llvm': 'LLVM',
-                    'clang': 'Clang'}[options.component]
+                    'clang': 'Clang',
+                    'gcc': 'GCC'}[options.component]
   deps_field = {'llvm': 'pnacl_llvm_rev',
-                'clang': 'clang_rev'}[options.component]
+                'clang': 'clang_rev',
+                'gcc': 'pnacl_gcc_rev'}[options.component]
 
   AssertNoUncommittedChanges()
 
